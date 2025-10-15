@@ -1,0 +1,262 @@
+import { useDispatch, useSelector } from 'react-redux';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import {
+  addAdsRewardCoin,
+  editAddsRewardCoin,
+  getAdsRewardCoin,
+} from '../../store/rewardSlice';
+import { closeDialog } from '../../store/dialogueSlice';
+
+const AdsCoinRewarddialogue = () => {
+  const dispatch = useDispatch();
+  const { dialogue: open, dialogueData } = useSelector((state) => state.dialogue);
+  
+  const [values, setValues] = useState({
+    adLabel: '',
+    adDisplayInterval: '',
+    coinEarnedFromAd: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (dialogueData) {
+      setValues({
+        adLabel: dialogueData?.adLabel || '',
+        adDisplayInterval: dialogueData?.adDisplayInterval || '',
+        coinEarnedFromAd: dialogueData?.coinEarnedFromAd || ''
+      });
+    }
+  }, [dialogueData]);
+
+  const handleClose = () => {
+    dispatch(closeDialog());
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setValues({
+      adLabel: '',
+      adDisplayInterval: '',
+      coinEarnedFromAd: ''
+    });
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!values.adLabel?.trim()) newErrors.adLabel = 'Ad label is required';
+    if (!values.adDisplayInterval) newErrors.adDisplayInterval = 'Display interval is required';
+    if (!values.coinEarnedFromAd) newErrors.coinEarnedFromAd = 'Coins earned is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+
+    const submitData = {
+      ...values,
+      adDisplayInterval: Number(values.adDisplayInterval),
+      coinEarnedFromAd: Number(values.coinEarnedFromAd)
+    };
+
+    const action = dialogueData 
+      ? editAddsRewardCoin(submitData)
+      : addAdsRewardCoin(submitData);
+
+    dispatch(action).then((res) => {
+      if (res?.payload?.status) {
+        toast.success(res?.payload?.message);
+        dispatch(closeDialog());
+        dispatch(getAdsRewardCoin());
+        resetForm();
+      } else {
+        toast.error(res?.payload?.message);
+      }
+    });
+  };
+
+  const handleInputChange = (field, value) => {
+    setValues(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={handleClose}
+      />
+      
+      {/* Modal */}
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-5">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">💰</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white">
+                  {dialogueData ? 'Edit Ads Reward' : 'Create Ads Reward'}
+                </h3>
+                <p className="text-red-100 text-opacity-90 text-sm mt-1">
+                  {dialogueData 
+                    ? 'Update your advertisement reward settings' 
+                    : 'Configure new advertisement reward system'
+                  }
+                </p>
+              </div>
+              <button
+                onClick={handleClose}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors duration-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 bg-white">
+            <form onSubmit={(e) => e.preventDefault()} onKeyPress={handleKeyPress}>
+              <div className="space-y-6">
+                {/* Ad Label Field */}
+                <div>
+                  <label className="block text-sm font-medium text-red-700 mb-2">
+                    Ad Label <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={values.adLabel}
+                    onChange={(e) => handleInputChange('adLabel', e.target.value)}
+                    placeholder="Enter a descriptive label for the ad"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 ${
+                      errors.adLabel 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-gray-300 focus:border-transparent'
+                    }`}
+                  />
+                  {errors.adLabel && (
+                    <p className="text-red-600 text-sm mt-2 flex items-center space-x-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{errors.adLabel}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Display Interval Field */}
+                <div>
+                  <label className="block text-sm font-medium text-red-700 mb-2">
+                    Display Interval (seconds) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={values.adDisplayInterval}
+                    onChange={(e) => handleInputChange('adDisplayInterval', e.target.value)}
+                    placeholder="Time between ad displays"
+                    min="1"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 ${
+                      errors.adDisplayInterval 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-gray-300 focus:border-transparent'
+                    }`}
+                  />
+                  {errors.adDisplayInterval && (
+                    <p className="text-red-600 text-sm mt-2 flex items-center space-x-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{errors.adDisplayInterval}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Coins Earned Field */}
+                <div>
+                  <label className="block text-sm font-medium text-red-700 mb-2">
+                    Coins Earned per Ad <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={values.coinEarnedFromAd}
+                    onChange={(e) => handleInputChange('coinEarnedFromAd', e.target.value)}
+                    placeholder="Number of coins rewarded"
+                    min="1"
+                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 ${
+                      errors.coinEarnedFromAd 
+                        ? 'border-red-300 bg-red-50' 
+                        : 'border-gray-300 focus:border-transparent'
+                    }`}
+                  />
+                  {errors.coinEarnedFromAd && (
+                    <p className="text-red-600 text-sm mt-2 flex items-center space-x-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{errors.coinEarnedFromAd}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Help Section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-blue-800 text-sm font-medium">Ads Reward Configuration</p>
+                      <p className="text-blue-600 text-sm mt-1">
+                        Configure how users earn coins by watching ads. Set appropriate intervals and rewards to balance user experience and engagement.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleClose}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-6 py-2 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl hover:from-red-600 hover:to-rose-600 transition-all duration-200 shadow-sm hover:shadow-md font-semibold"
+              >
+                {dialogueData ? 'Update Reward' : 'Create Reward'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdsCoinRewarddialogue;
