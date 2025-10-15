@@ -6,7 +6,7 @@ const app = express();
 const cors = require("cors");
 
 app.use(cors({
-  origin: "http://localhost:5173",  // your frontend domain
+  origin: "https://4sidestvshorts.vercel.app",  // your frontend domain
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
